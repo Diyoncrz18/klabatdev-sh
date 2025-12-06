@@ -129,32 +129,39 @@ const mountainShader = {
       // Calculate slope (steepness) - more accurate
       float slope = acos(dot(vNormal, vec3(0.0, 1.0, 0.0))) / 1.5708; // 0 to 1
       
-      // Normalize height for calculations (0 to 1) - disesuaikan untuk cone yang SANGAT BESAR
-      float normalizedHeight = (vHeight + 11.0) / 22.0; // Adjust untuk cone geometry yang SANGAT BESAR
+      // Normalize height for calculations (0 to 1) - disesuaikan untuk cone yang lebih kecil
+      float normalizedHeight = (vHeight + 2.5) / 5.0; // Adjust untuk cone geometry yang lebih kecil
       
-      // Ultra-realistic multi-scale rock texture dengan banyak detail
-      vec2 rockUV = vUv * 15.0;
+      // Ultra-realistic multi-scale rock texture dengan detail yang lebih jelas dan tajam
+      vec2 rockUV = vUv * 20.0; // Meningkatkan scale untuk detail lebih jelas
       
-      // Multiple octaves untuk detail yang sangat halus
+      // Multiple octaves untuk detail yang sangat halus dan jelas
       float rockDetail1 = fbm(rockUV); // Large scale
       float rockDetail2 = fbm(rockUV * 4.0); // Medium scale
       float rockDetail3 = fbm(rockUV * 12.0); // Small scale
       float rockDetail4 = fbm(rockUV * 35.0); // Fine detail
       float rockDetail5 = fbm(rockUV * 80.0); // Very fine detail
+      float rockDetail6 = fbm(rockUV * 150.0); // Ultra fine detail untuk kejelasan
       
-      // Combine rock details dengan weighting yang lebih baik
-      float rockVariation = rockDetail1 * 0.35 + rockDetail2 * 0.25 + rockDetail3 * 0.2 + 
-                           rockDetail4 * 0.12 + rockDetail5 * 0.08;
+      // Combine rock details dengan weighting yang lebih baik dan lebih jelas
+      float rockVariation = rockDetail1 * 0.3 + rockDetail2 * 0.25 + rockDetail3 * 0.2 + 
+                           rockDetail4 * 0.12 + rockDetail5 * 0.08 + rockDetail6 * 0.05;
       
-      // Enhanced crack/crevice detail dengan multiple scales
-      float cracks1 = fbm(vUv * 30.0);
-      float cracks2 = fbm(vUv * 60.0);
-      float cracks = (cracks1 * 0.6 + cracks2 * 0.4);
-      rockVariation = mix(rockVariation, rockVariation * 0.65, smoothstep(0.55, 0.85, cracks));
+      // Enhanced crack/crevice detail dengan multiple scales - lebih jelas
+      float cracks1 = fbm(vUv * 40.0);
+      float cracks2 = fbm(vUv * 80.0);
+      float cracks3 = fbm(vUv * 120.0);
+      float cracks = (cracks1 * 0.5 + cracks2 * 0.3 + cracks3 * 0.2);
+      rockVariation = mix(rockVariation, rockVariation * 0.6, smoothstep(0.5, 0.9, cracks));
       
-      // Add rock surface roughness detail
-      float roughness = fbm(vUv * 50.0 + time * 0.01);
-      rockVariation += (roughness - 0.5) * 0.15;
+      // Add rock surface roughness detail - lebih jelas
+      float roughness = fbm(vUv * 60.0 + time * 0.01);
+      float microRoughness = fbm(vUv * 120.0 + time * 0.02);
+      rockVariation += (roughness - 0.5) * 0.2 + (microRoughness - 0.5) * 0.1;
+      
+      // Add surface detail untuk tekstur yang lebih jelas
+      float surfaceDetail = fbm(vUv * 25.0);
+      rockVariation = mix(rockVariation, rockVariation * 1.2, smoothstep(0.6, 0.9, surfaceDetail) * 0.3);
       
       // Ultra-realistic rock color dengan banyak variasi hijau alam
       vec3 darkRock = rockColor * 0.6; // Hijau gelap (hutan dalam)
@@ -203,12 +210,16 @@ const mountainShader = {
       vec3 sunTint = vec3(0.05, 0.12, 0.03); // Tint hijau terang untuk highlight matahari
       rock += sunTint * max(0.0, sunExposure) * (1.0 + rockVariation * 0.4);
       
-      // Add shadow areas dengan warna lebih gelap
+      // Add shadow areas dengan warna lebih gelap - lebih jelas
       float shadowFactor = max(0.0, -dot(vNormal, normalize(vec3(0.5, 1.0, 0.3))));
-      rock *= (1.0 - shadowFactor * 0.25);
+      rock *= (1.0 - shadowFactor * 0.3); // Shadow lebih jelas
       
-      // Add subtle color variation berdasarkan slope (lereng curam lebih gelap)
-      rock *= (0.9 + (1.0 - slope) * 0.1);
+      // Add color variation berdasarkan slope (lereng curam lebih gelap) - lebih jelas
+      rock *= (0.85 + (1.0 - slope) * 0.15); // Kontras lebih jelas
+      
+      // Add detail highlight untuk tekstur yang lebih jelas
+      float detailHighlight = fbm(vUv * 45.0);
+      rock += rock * detailHighlight * 0.1 * (1.0 - shadowFactor);
       
       // Ultra-realistic snow distribution dengan detail maksimal
       float snowFactor = 0.0;
@@ -292,19 +303,23 @@ const mountainShader = {
       finalColor += vec3(0.1, 0.1, 0.15) * peakGlow;
       
       // Enhanced atmospheric perspective dengan color shift yang lebih halus
-      float distanceFade = 1.0 - smoothstep(0.0, 1.0, length(vPosition) / 15.0);
+      float distanceFade = 1.0 - smoothstep(0.0, 1.0, length(vPosition) / 3.5);
       vec3 atmosphericTint = vec3(0.87, 0.89, 0.93);
       finalColor = mix(finalColor * atmosphericTint, finalColor, distanceFade);
       
-      // Enhanced color grading untuk cinematic look dengan lebih banyak nuance
-      finalColor = pow(finalColor, vec3(0.92)); // Slight gamma adjustment
+      // Enhanced color grading untuk cinematic look dengan lebih banyak nuance dan kejelasan
+      finalColor = pow(finalColor, vec3(0.88)); // Gamma adjustment untuk kontras lebih baik
       
-      // Add subtle color saturation boost
+      // Add color saturation boost untuk kejelasan
       float luminance = dot(finalColor, vec3(0.299, 0.587, 0.114));
-      finalColor = mix(vec3(luminance), finalColor, 1.1);
+      finalColor = mix(vec3(luminance), finalColor, 1.15); // Saturation lebih tinggi untuk kejelasan
       
-      // Final contrast adjustment
-      finalColor = (finalColor - 0.5) * 1.05 + 0.5;
+      // Final contrast adjustment - lebih tinggi untuk kejelasan
+      finalColor = (finalColor - 0.5) * 1.15 + 0.5;
+      
+      // Add sharpness untuk detail yang lebih jelas
+      vec3 sharpened = finalColor * 1.1 - mix(finalColor, vec3(luminance), 0.1) * 0.1;
+      finalColor = mix(finalColor, sharpened, 0.3);
       
       gl_FragColor = vec4(finalColor, 1.0);
     }
@@ -341,8 +356,8 @@ function RealisticMountain() {
   
   // Create cone geometry dengan displacement yang lebih realistis dan tidak simetris
   const geometry = useMemo(() => {
-    const radius = 18; // Radius dasar
-    const height = 22; // Tinggi gunung
+    const radius = 4; // Radius dasar - diperkecil lagi
+    const height = 5; // Tinggi gunung - diperkecil lagi
     const radialSegments = 96; // Ditingkatkan untuk detail lebih halus
     const heightSegments = 48; // Ditingkatkan untuk detail lebih halus
     
@@ -373,11 +388,10 @@ function RealisticMountain() {
       const y = positions.getY(i);
       const z = positions.getZ(i);
       
-      // Untuk puncak (y = height/2), pastikan x dan z = 0 dengan sedikit variasi
+      // Untuk puncak (y = height/2), pastikan x dan z = 0 (tepat di tengah)
       if (Math.abs(y - height / 2) < 0.1) {
-        const peakVariation = noise(x * 0.5, y * 0.5, z * 0.5) * 0.1;
-        positions.setX(i, peakVariation);
-        positions.setZ(i, peakVariation * 0.8);
+        positions.setX(i, 0);
+        positions.setZ(i, 0);
       } else {
         // Tambahkan detail permukaan yang lebih kompleks dan tidak simetris
         const distance = Math.sqrt(x * x + z * z);
@@ -386,25 +400,24 @@ function RealisticMountain() {
           const normalizedY = (y + height / 2) / height;
           const angle = Math.atan2(z, x);
           
-          // Multi-scale displacement untuk bentuk yang lebih natural
-          const largeScale = noise(angle * 2, normalizedY * 3, 0) * 0.3;
+          // Multi-scale displacement untuk bentuk yang lebih natural dengan detail lebih jelas
+          const largeScale = noise(angle * 2, normalizedY * 3, 0) * 0.25;
           const mediumScale = noise(angle * 6, normalizedY * 8, distance * 0.2) * 0.15;
           const smallScale = noise(angle * 12, normalizedY * 15, distance * 0.4) * 0.08;
+          const fineScale = noise(angle * 20, normalizedY * 25, distance * 0.6) * 0.04;
           
-          // Asymmetrical displacement untuk bentuk yang lebih realistis
-          const asymmetry = Math.sin(angle * 3 + normalizedY * 5) * 0.2;
-          
-          // Combine all displacements
-          const totalDisplacement = (largeScale + mediumScale + smallScale + asymmetry) * 
+          // Displacement dengan lebih banyak detail untuk tekstur yang lebih jelas
+          const totalDisplacement = (largeScale + mediumScale + smallScale + fineScale) * 
                                     (1 - normalizedY * 0.5); // Kurangi displacement di puncak
           
           // Terapkan displacement secara radial
           const newX = x + (x / distance) * totalDisplacement;
           const newZ = z + (z / distance) * totalDisplacement;
           
-          // Tambahkan sedikit variasi vertikal untuk detail lereng
-          const verticalVariation = noise(x * 0.3, z * 0.3, normalizedY * 2) * 0.05;
-          const newY = y + verticalVariation * (1 - normalizedY);
+          // Variasi vertikal untuk detail permukaan yang lebih jelas
+          const verticalVariation = noise(x * 0.3, z * 0.3, normalizedY * 2) * 0.04;
+          const verticalDetail = noise(x * 0.6, z * 0.6, normalizedY * 4) * 0.02;
+          const newY = y + (verticalVariation + verticalDetail) * (1 - normalizedY * 0.7);
           
           // Pastikan nilai tidak NaN atau Infinity
           if (isFinite(newX) && isFinite(newZ) && isFinite(newY)) {
@@ -426,6 +439,17 @@ function RealisticMountain() {
         if (index === 0) posArray[i] = 0; // x
         else if (index === 1) posArray[i] = -height / 2; // y
         else posArray[i] = 0; // z
+      }
+    }
+    positions.needsUpdate = true;
+    
+    // Pastikan gunung lurus dengan memvalidasi posisi puncak
+    for (let i = 0; i < positions.count; i++) {
+      const y = positions.getY(i);
+      // Pastikan semua vertex di puncak berada tepat di tengah
+      if (Math.abs(y - height / 2) < 0.05) {
+        positions.setX(i, 0);
+        positions.setZ(i, 0);
       }
     }
     positions.needsUpdate = true;
@@ -461,8 +485,8 @@ function RealisticMountain() {
   }, []);
   
   
-  return (
-    <group ref={groupRef} position={[0, -11, 0]}>
+    return (
+    <group ref={groupRef} position={[0, 0.4, 0]}>
       {/* Main mountain mesh */}
       <mesh ref={meshRef} geometry={geometry} material={material} castShadow receiveShadow />
       
@@ -639,104 +663,12 @@ function AnimatedFog() {
   return null; // Fog sudah di-set via useEffect
 }
 
-// Floating Particles untuk atmosfer
-function FloatingParticles() {
-  const pointsRef = useRef<THREE.Points>(null);
+// Alas estetik di bawah kaki gunung
+function MountainBase() {
+  const baseRef = useRef<THREE.Mesh>(null);
   
-  const particles = useMemo(() => {
-    const count = 300;
-    const positions = new Float32Array(count * 3);
-    const colors = new Float32Array(count * 3);
-    
-    for (let i = 0; i < count * 3; i += 3) {
-      // Distribute particles around mountain
-      const radius = 8 + Math.random() * 12;
-      const angle = Math.random() * Math.PI * 2;
-      const height = -2 + Math.random() * 8;
-      
-      positions[i] = Math.cos(angle) * radius;
-      positions[i + 1] = height;
-      positions[i + 2] = Math.sin(angle) * radius;
-      
-      // White/light gray colors
-      const intensity = 0.3 + Math.random() * 0.4;
-      colors[i] = intensity;
-      colors[i + 1] = intensity;
-      colors[i + 2] = intensity;
-    }
-    
-    return { positions, colors };
-  }, []);
-  
-  useFrame((state) => {
-    if (pointsRef.current?.geometry) {
-      const time = state.clock.elapsedTime;
-      const positions = pointsRef.current.geometry.attributes.position;
-      
-      if (positions?.array) {
-        const arr = positions.array as Float32Array;
-        for (let i = 1; i < arr.length; i += 3) {
-          // Slow upward drift
-          arr[i] += 0.002 + Math.sin(time * 0.5 + i) * 0.001;
-          if (arr[i] > 10) arr[i] = -2;
-          
-          // Gentle horizontal drift
-          const swirl = time * 0.2 + i * 0.01;
-          arr[i - 1] += Math.sin(swirl) * 0.0005;
-          arr[i + 1] += Math.cos(swirl) * 0.0005;
-        }
-        positions.needsUpdate = true;
-      }
-    }
-  });
-  
-  const geometry = useMemo(() => {
-    const geom = new THREE.BufferGeometry();
-    geom.setAttribute('position', new THREE.Float32BufferAttribute(particles.positions, 3));
-    geom.setAttribute('color', new THREE.Float32BufferAttribute(particles.colors, 3));
-    return geom;
-  }, [particles]);
-  
-  return (
-    <points ref={pointsRef} geometry={geometry}>
-      <pointsMaterial
-        size={0.05}
-        vertexColors
-        transparent
-        opacity={0.6}
-        sizeAttenuation
-        blending={THREE.AdditiveBlending}
-        depthWrite={false}
-      />
-    </points>
-  );
-}
-
-// Realistic Disk Component dengan rotasi dan detail yang lebih baik
-function RealisticDisk() {
-  const diskGroupRef = useRef<THREE.Group>(null);
-  const ringRef = useRef<THREE.Mesh>(null);
-  const groundRef = useRef<THREE.Mesh>(null);
-  
-  // Rotasi piringan yang smooth
-  useFrame((state) => {
-    const time = state.clock.elapsedTime;
-    
-    if (diskGroupRef.current) {
-      // Rotasi piringan dengan kecepatan yang natural
-      diskGroupRef.current.rotation.y = time * 0.1; // Rotasi lambat dan smooth
-    }
-    
-    // Update time untuk shader animasi
-    if (ringRef.current && ringRef.current.material instanceof THREE.ShaderMaterial) {
-      if (ringRef.current.material.uniforms?.time) {
-        ringRef.current.material.uniforms.time.value = time;
-      }
-    }
-  });
-  
-  // Shader untuk piringan yang lebih realistis
-  const diskShader = useMemo(() => ({
+  // Shader untuk alas yang estetik
+  const baseShader = useMemo(() => ({
     vertexShader: `
       varying vec3 vPosition;
       varying vec3 vNormal;
@@ -790,146 +722,116 @@ function RealisticDisk() {
         float dist = length(vUv - vec2(0.5, 0.5));
         
         // Detail texture dengan noise
-        vec2 detailUV = vUv * 8.0;
+        vec2 detailUV = vUv * 6.0;
         float detail1 = fbm(detailUV);
-        float detail2 = fbm(detailUV * 3.0);
-        float detail3 = fbm(detailUV * 9.0);
-        float textureDetail = detail1 * 0.5 + detail2 * 0.3 + detail3 * 0.2;
+        float detail2 = fbm(detailUV * 2.0);
+        float textureDetail = detail1 * 0.6 + detail2 * 0.4;
         
         // Warna dasar dengan variasi
         vec3 color = baseColor;
         
         // Tambahkan variasi warna berdasarkan texture
-        color = mix(color * 0.85, color * 1.15, textureDetail);
+        color = mix(color * 0.9, color * 1.1, textureDetail);
         
-        // Efek edge yang lebih terang (untuk ring)
-        float edgeFactor = smoothstep(0.85, 1.0, dist);
-        color = mix(color, edgeColor, edgeFactor * 0.4);
+        // Efek radial gradient yang halus
+        float radialGradient = 1.0 - smoothstep(0.0, 0.7, dist);
+        color *= (0.85 + radialGradient * 0.15);
         
-        // Tambahkan efek radial gradient
-        float radialGradient = 1.0 - smoothstep(0.3, 0.9, dist);
-        color *= (0.7 + radialGradient * 0.3);
+        // Edge highlight yang halus
+        float edgeFactor = smoothstep(0.6, 0.9, dist);
+        color = mix(color, edgeColor, edgeFactor * 0.3);
         
         // Tambahkan highlight berdasarkan normal
-        float highlight = pow(max(0.0, dot(vNormal, normalize(vec3(0.5, 1.0, 0.3)))), 2.0);
-        color += vec3(0.1, 0.1, 0.1) * highlight;
+        float highlight = pow(max(0.0, dot(vNormal, normalize(vec3(0.5, 1.0, 0.3)))), 3.0);
+        color += vec3(0.08, 0.12, 0.06) * highlight;
         
         // Tambahkan shadow areas
         float shadow = max(0.0, -dot(vNormal, normalize(vec3(0.5, 1.0, 0.3))));
-        color *= (1.0 - shadow * 0.2);
+        color *= (1.0 - shadow * 0.15);
         
-        // Tambahkan efek metalik subtle
-        float metallic = 0.3;
-        vec3 metallicColor = mix(color, vec3(0.8, 0.85, 0.9), metallic * highlight);
-        color = mix(color, metallicColor, 0.2);
+        // Subtle glow effect di tengah
+        float centerGlow = 1.0 - smoothstep(0.0, 0.4, dist);
+        color += vec3(0.05, 0.08, 0.04) * centerGlow * 0.5;
         
         // Final color adjustment
         color = pow(color, vec3(0.95)); // Gamma correction
         
-        gl_FragColor = vec4(color, 1.0);
+        gl_FragColor = vec4(color, 0.95); // Sedikit transparan untuk efek halus
       }
     `,
     uniforms: {
       time: { value: 0 },
-      baseColor: { value: new THREE.Color(0x2a3a2a) }, // Hijau gelap untuk piringan
-      edgeColor: { value: new THREE.Color(0x4a6b4a) }, // Hijau terang untuk edge
+      baseColor: { value: new THREE.Color(0x1a3a1a) }, // Hijau gelap untuk alas
+      edgeColor: { value: new THREE.Color(0x2a5a2a) }, // Hijau terang untuk edge
     },
   }), []);
   
-  // Geometry untuk ground plane dengan detail lebih tinggi
-  const groundGeometry = useMemo(() => {
-    const geom = new THREE.PlaneGeometry(100, 100, 64, 64);
-    const positions = geom.attributes.position;
-    
-    // Tambahkan sedikit displacement untuk detail
-    for (let i = 0; i < positions.count; i++) {
-      const x = positions.getX(i);
-      const z = positions.getZ(i);
-      const distance = Math.sqrt(x * x + z * z);
-      
-      // Displacement halus berdasarkan jarak dari center
-      const noise = Math.sin(x * 0.1) * Math.cos(z * 0.1) * 0.02;
-      const radialDisplacement = Math.sin(distance * 0.05) * 0.01;
-      
-      positions.setY(i, noise + radialDisplacement);
-    }
-    
-    positions.needsUpdate = true;
-    geom.computeVertexNormals();
-    
+  // Material untuk alas
+  const baseMaterial = useMemo(() => {
+    return new THREE.ShaderMaterial({
+      vertexShader: baseShader.vertexShader,
+      fragmentShader: baseShader.fragmentShader,
+      uniforms: baseShader.uniforms,
+      side: THREE.DoubleSide,
+      transparent: true,
+    });
+  }, [baseShader]);
+  
+  // Geometry untuk alas - circular platform
+  const baseGeometry = useMemo(() => {
+    const geom = new THREE.CircleGeometry(5.5, 64); // Sedikit lebih besar dari radius gunung (4)
     return geom;
   }, []);
   
-  // Material untuk ground
-  const groundMaterial = useMemo(() => {
-    return new THREE.MeshStandardMaterial({
-      color: 0x1a2a1a, // Hijau gelap
-      roughness: 0.8,
-      metalness: 0.1,
-      emissive: 0x0a1a0a,
-      emissiveIntensity: 0.2,
-    });
-  }, []);
-  
-  // Material untuk ring dengan shader
-  const ringMaterial = useMemo(() => {
-    return new THREE.ShaderMaterial({
-      vertexShader: diskShader.vertexShader,
-      fragmentShader: diskShader.fragmentShader,
-      uniforms: diskShader.uniforms,
-      side: THREE.DoubleSide,
-    });
-  }, [diskShader]);
+  // Update time untuk animasi subtle
+  useFrame((state) => {
+    const time = state.clock.elapsedTime;
+    if (baseRef.current && baseRef.current.material instanceof THREE.ShaderMaterial) {
+      if (baseRef.current.material.uniforms?.time) {
+        baseRef.current.material.uniforms.time.value = time * 0.1;
+      }
+    }
+  });
   
   return (
-    <group ref={diskGroupRef} position={[0, -11, 0]}>
-      {/* Ground plane dengan detail */}
+    <group position={[0, -2.1, 0]}>
+      {/* Main base platform */}
       <mesh 
-        ref={groundRef}
-        geometry={groundGeometry} 
+        ref={baseRef}
+        geometry={baseGeometry} 
         rotation={[-Math.PI / 2, 0, 0]} 
-        material={groundMaterial}
+        material={baseMaterial}
         receiveShadow
       />
       
-      {/* Ring piringan dengan shader realistis */}
-      <mesh 
-        ref={ringRef}
-        rotation={[-Math.PI / 2, 0, 0]} 
-        position={[0, 0.05, 0]}
-        material={ringMaterial}
-      >
-        <ringGeometry args={[17, 19, 128, 1]} />
-      </mesh>
-      
-      {/* Inner ring detail */}
+      {/* Subtle glow ring di edge */}
       <mesh 
         rotation={[-Math.PI / 2, 0, 0]} 
-        position={[0, 0.03, 0]}
+        position={[0, 0.01, 0]}
       >
-        <ringGeometry args={[16.5, 17, 96, 1]} />
+        <ringGeometry args={[5.3, 5.5, 64, 1]} />
         <meshStandardMaterial 
-          color={0x3a4a3a}
-          roughness={0.6}
-          metalness={0.4}
+          color={0x2a4a2a}
           emissive={0x1a2a1a}
-          emissiveIntensity={0.3}
+          emissiveIntensity={0.4}
+          transparent
+          opacity={0.6}
           side={THREE.DoubleSide}
         />
       </mesh>
       
-      {/* Outer edge highlight */}
+      {/* Inner highlight ring */}
       <mesh 
         rotation={[-Math.PI / 2, 0, 0]} 
-        position={[0, 0.06, 0]}
+        position={[0, 0.02, 0]}
       >
-        <ringGeometry args={[18.8, 19, 128, 1]} />
+        <ringGeometry args={[4.5, 4.8, 64, 1]} />
         <meshStandardMaterial 
-          color={0x5a7a5a}
-          roughness={0.4}
-          metalness={0.5}
+          color={0x3a5a3a}
           emissive={0x2a3a2a}
-          emissiveIntensity={0.5}
+          emissiveIntensity={0.3}
+          transparent
+          opacity={0.5}
           side={THREE.DoubleSide}
         />
       </mesh>
@@ -937,9 +839,9 @@ function RealisticDisk() {
   );
 }
 
-// Partikel bulat yang memancar dari piringan
-function DiskParticles() {
-  const particlesRef = useRef<THREE.Points>(null);
+// Partikel bulat yang muncul dari bawah hero dan tersebar ke seluruh halaman
+function HeroParticles() {
+  const particlesRef = useRef<THREE.InstancedMesh>(null);
   const particleDataRef = useRef<Array<{
     x: number;
     y: number;
@@ -949,10 +851,17 @@ function DiskParticles() {
     vz: number;
     life: number;
     maxLife: number;
+    size: number;
   }>>([]);
   
+  const count = 300; // Jumlah partikel (dikurangi untuk performa)
+  
+  // Sphere geometry untuk partikel bulat
+  const sphereGeometry = useMemo(() => {
+    return new THREE.SphereGeometry(1, 16, 16); // Bulat sempurna dengan 16 segments
+  }, []);
+  
   const particles = useMemo(() => {
-    const count = 200; // Jumlah partikel
     const positions = new Float32Array(count * 3);
     const colors = new Float32Array(count * 3);
     const sizes = new Float32Array(count);
@@ -967,139 +876,129 @@ function DiskParticles() {
       vz: number;
       life: number;
       maxLife: number;
+      size: number;
     }> = [];
     
     for (let i = 0; i < count; i++) {
-      // Posisi awal di piringan (dalam radius 14-16)
-      const angle = Math.random() * Math.PI * 2;
-      const radius = 14 + Math.random() * 2;
-      const x = Math.cos(angle) * radius;
-      const z = Math.sin(angle) * radius;
-      const y = -9; // Di level piringan
+      // Posisi awal di bawah hero - menyebar horizontal ke seluruh halaman
+      const x = (Math.random() - 0.5) * 50; // Menyebar ke seluruh halaman
+      const y = -20 - Math.random() * 10; // Keluar dari paling bawah
+      const z = (Math.random() - 0.5) * 50; // Menyebar depth ke seluruh halaman
       
       positions[i * 3] = x;
       positions[i * 3 + 1] = y;
       positions[i * 3 + 2] = z;
       
-      // Velocity - memancar ke atas dan keluar
-      const speed = 0.05 + Math.random() * 0.1;
-      const verticalSpeed = 0.08 + Math.random() * 0.12;
-      const vx = Math.cos(angle) * speed * (0.5 + Math.random() * 0.5);
-      const vz = Math.sin(angle) * speed * (0.5 + Math.random() * 0.5);
+      // Velocity - sangat lambat untuk gerakan halus
+      const speed = 0.01 + Math.random() * 0.02; // Sangat lambat
+      const angle = Math.random() * Math.PI * 2;
+      const verticalSpeed = 0.03 + Math.random() * 0.04; // Sangat lambat ke atas
+      const horizontalSpread = (Math.random() - 0.5) * 0.03; // Sangat lambat horizontal
+      
+      const vx = Math.cos(angle) * speed + horizontalSpread;
+      const vz = Math.sin(angle) * speed + horizontalSpread;
       const vy = verticalSpeed;
       
       // Warna hijau dengan variasi
-      const greenIntensity = 0.4 + Math.random() * 0.6;
-      colors[i * 3] = 0.1 * greenIntensity; // R
+      const greenIntensity = 0.4 + Math.random() * 0.5;
+      colors[i * 3] = 0.15 * greenIntensity; // R
       colors[i * 3 + 1] = greenIntensity; // G - hijau
-      colors[i * 3 + 2] = 0.2 * greenIntensity; // B
+      colors[i * 3 + 2] = 0.25 * greenIntensity; // B
       
-      // Ukuran partikel - diperbesar
-      sizes[i] = 0.15 + Math.random() * 0.18;
+      // Ukuran partikel bulat - variasi
+      const size = 0.1 + Math.random() * 0.15;
+      sizes[i] = size;
       
       // Simpan data partikel
       data.push({
         x, y, z,
         vx, vy, vz,
         life: 0,
-        maxLife: 3 + Math.random() * 4, // Life span 3-7 detik
+        maxLife: 15 + Math.random() * 20, // Life span lebih lama
+        size,
       });
     }
     
     particleDataRef.current = data;
     
     return { positions, colors, sizes };
-  }, []);
+  }, [count]);
   
   useFrame((state, delta) => {
-    if (particlesRef.current?.geometry && particleDataRef.current.length > 0) {
+    if (particlesRef.current && particleDataRef.current.length > 0) {
       const time = state.clock.elapsedTime;
-      const positions = particlesRef.current.geometry.attributes.position;
-      const colors = particlesRef.current.geometry.attributes.color;
+      const matrix = new THREE.Matrix4();
       
-      if (positions?.array && colors?.array) {
-        const posArr = positions.array as Float32Array;
-        const colArr = colors.array as Float32Array;
+      for (let i = 0; i < particleDataRef.current.length; i++) {
+        const particle = particleDataRef.current[i];
         
-        for (let i = 0; i < particleDataRef.current.length; i++) {
-          const particle = particleDataRef.current[i];
+        // Update life
+        particle.life += delta;
+        
+        // Reset partikel jika sudah mati atau terlalu tinggi/jauh
+        if (particle.life > particle.maxLife || 
+            particle.y > 25 || 
+            Math.abs(particle.x) > 35 || 
+            Math.abs(particle.z) > 35) {
+          // Reset ke bawah hero dengan posisi random untuk menyebar
+          particle.x = (Math.random() - 0.5) * 50;
+          particle.y = -20 - Math.random() * 10;
+          particle.z = (Math.random() - 0.5) * 50;
           
-          // Update life
-          particle.life += delta;
+          // Reset velocity dengan variasi (sangat lambat)
+          const speed = 0.01 + Math.random() * 0.02;
+          const angle = Math.random() * Math.PI * 2;
+          const verticalSpeed = 0.03 + Math.random() * 0.04;
+          const horizontalSpread = (Math.random() - 0.5) * 0.03;
           
-          // Reset partikel jika sudah mati atau terlalu tinggi
-          if (particle.life > particle.maxLife || particle.y > 5) {
-            // Reset ke piringan
-            const angle = Math.random() * Math.PI * 2;
-            const radius = 14 + Math.random() * 2;
-            particle.x = Math.cos(angle) * radius;
-            particle.z = Math.sin(angle) * radius;
-            particle.y = -9;
-            
-            // Reset velocity
-            const speed = 0.05 + Math.random() * 0.1;
-            const verticalSpeed = 0.08 + Math.random() * 0.12;
-            particle.vx = Math.cos(angle) * speed * (0.5 + Math.random() * 0.5);
-            particle.vz = Math.sin(angle) * speed * (0.5 + Math.random() * 0.5);
-            particle.vy = verticalSpeed;
-            
-            particle.life = 0;
-            particle.maxLife = 3 + Math.random() * 4;
-          }
+          particle.vx = Math.cos(angle) * speed + horizontalSpread;
+          particle.vz = Math.sin(angle) * speed + horizontalSpread;
+          particle.vy = verticalSpeed;
           
-          // Update posisi
-          particle.x += particle.vx;
-          particle.y += particle.vy;
-          particle.z += particle.vz;
-          
-          // Add slight gravity effect
-          particle.vy -= 0.001;
-          
-          // Add slight swirl effect
-          const swirl = time * 0.3 + i * 0.01;
-          particle.x += Math.sin(swirl) * 0.002;
-          particle.z += Math.cos(swirl) * 0.002;
-          
-          // Update positions array
-          posArr[i * 3] = particle.x;
-          posArr[i * 3 + 1] = particle.y;
-          posArr[i * 3 + 2] = particle.z;
-          
-          // Update colors berdasarkan life (fade out)
-          const lifeRatio = particle.life / particle.maxLife;
-          const fade = 1.0 - lifeRatio;
-          const greenIntensity = (0.4 + Math.random() * 0.6) * fade;
-          colArr[i * 3] = 0.1 * greenIntensity;
-          colArr[i * 3 + 1] = greenIntensity;
-          colArr[i * 3 + 2] = 0.2 * greenIntensity;
+          particle.life = 0;
+          particle.maxLife = 15 + Math.random() * 20;
+          particle.size = 0.1 + Math.random() * 0.15;
         }
         
-        positions.needsUpdate = true;
-        colors.needsUpdate = true;
+        // Update posisi dengan kecepatan sangat lambat
+        particle.x += particle.vx;
+        particle.y += particle.vy;
+        particle.z += particle.vz;
+        
+        // Tambahkan sedikit turbulence untuk efek natural (sangat halus)
+        const turbulence = time * 0.2 + i * 0.01;
+        particle.x += Math.sin(turbulence) * 0.0005;
+        particle.z += Math.cos(turbulence) * 0.0005;
+        
+        // Update matrix untuk instancing
+        const lifeRatio = particle.life / particle.maxLife;
+        const fade = 1.0 - lifeRatio * 0.3;
+        const scale = particle.size * fade;
+        
+        matrix.makeScale(scale, scale, scale);
+        matrix.setPosition(particle.x, particle.y, particle.z);
+        particlesRef.current.setMatrixAt(i, matrix);
+      }
+      
+      // Update instanced mesh
+      if (particlesRef.current.instanceMatrix) {
+        particlesRef.current.instanceMatrix.needsUpdate = true;
       }
     }
   });
   
-  const geometry = useMemo(() => {
-    const geom = new THREE.BufferGeometry();
-    geom.setAttribute('position', new THREE.Float32BufferAttribute(particles.positions, 3));
-    geom.setAttribute('color', new THREE.Float32BufferAttribute(particles.colors, 3));
-    geom.setAttribute('size', new THREE.Float32BufferAttribute(particles.sizes, 1));
-    return geom;
-  }, [particles]);
-  
   return (
-    <points ref={particlesRef} geometry={geometry}>
-      <pointsMaterial
-        size={0.25}
-        vertexColors
+    <instancedMesh ref={particlesRef} args={[sphereGeometry, undefined, count]} frustumCulled={false}>
+      <meshStandardMaterial
+        color={0x4a8b3a}
+        emissive={0x2a5a2a}
+        emissiveIntensity={0.5}
         transparent
-        opacity={0.9}
-        sizeAttenuation
-        blending={THREE.AdditiveBlending}
-        depthWrite={false}
+        opacity={0.8}
+        roughness={0.3}
+        metalness={0.1}
       />
-    </points>
+    </instancedMesh>
   );
 }
 
@@ -1193,14 +1092,11 @@ const Scene = memo(function Scene() {
       {/* Mountain */}
       <RealisticMountain />
       
-      {/* Floating particles */}
-      <FloatingParticles />
+      {/* Alas estetik di bawah kaki gunung */}
+      <MountainBase />
       
-      {/* Partikel bulat yang memancar dari piringan */}
-      <DiskParticles />
-      
-      {/* Realistic rotating disk */}
-      <RealisticDisk />
+      {/* Partikel bulat dari bawah hero */}
+      <HeroParticles />
       
       {/* OrbitControls - disabled untuk background */}
       <OrbitControls
@@ -1248,7 +1144,7 @@ export default function RealisticMountainScene() {
   }), []);
 
   const cameraConfig = useMemo(() => ({
-    position: [18, 6, 18] as [number, number, number],
+    position: [5, 2, 5] as [number, number, number],
     fov: 65,
   }), []);
 
