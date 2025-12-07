@@ -62,10 +62,10 @@ export default function Navbar() {
               </Link>
             ))}
             <Link
-              href="#contact"
+              href="http://shopee.co.id/klabatdev"
               className="px-6 py-2 bg-gradient-to-r from-[#548742] to-[#82b04f] text-white rounded-full hover:shadow-lg hover:scale-105 transition-all duration-300 font-medium"
             >
-              Mulai Proyek
+              Order Sekarang
             </Link>
           </div>
 
